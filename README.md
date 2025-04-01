@@ -18,8 +18,6 @@ Welcome to the official repository for our sub-weekly reservoir surface area map
 10. [Citation & References](#citation--references)  
 11. [Contact & Contributing](#contact--contributing)
 
----
-
 ## **Project Description**
 
 This project aims to generate **sub-weekly reservoir surface area time series** for reservoirs across the Continental United States. By using **Harmonized Landsat and Sentinel-2 (HLS)** datasets, we can overcome the trade-off between **spatial resolution (30 m)** and **temporal frequency (~2–6 days)**. Our approach includes:
@@ -33,8 +31,6 @@ This project aims to generate **sub-weekly reservoir surface area time series** 
 - Achieves R² = 0.98 and bias < 10% when compared to in-situ data from 240 reservoirs.  
 - Offers **sub-weekly** temporal resolution, providing richer intra-monthly dynamics than typical monthly products.  
 - Demonstrates utility for water resource management, hydropower, flood risk analysis, and broader hydrological studies.
-
----
 
 ## **Features / Pipeline Overview**
 
@@ -65,8 +61,6 @@ This project aims to generate **sub-weekly reservoir surface area time series** 
    - Compared against daily in-situ reservoir areas at 240 sites.  
    - Demonstrates robust performance across reservoir size classes and climatic regimes.
 
----
-
 ## **Prerequisites & Installation**
 
 1. **Software Requirements**  
@@ -86,8 +80,6 @@ This project aims to generate **sub-weekly reservoir surface area time series** 
 
    # Install dependencies (conda recommended)
    pip install -r requirements.txt
-
----
 
 ## **Quick Start**
 
@@ -129,8 +121,6 @@ python src/smooth_and_outlier.py \
   --output="results/final_timeseries.csv"
 ```
 
----
-
 ## **Example**
 
 A more detailed demonstration is provided in the examples/ folder:
@@ -140,8 +130,6 @@ A more detailed demonstration is provided in the examples/ folder:
 
 **PLACEHOLDER FOR FIGURE**  
 _An example plot showing the time series of reservoir surface area with LOWESS smoothing._
-
----
 
 ## **Project Structure**
 
@@ -166,10 +154,6 @@ Here is a suggested structure for your repository:
 └── README.md  (this file)
 ```
 
-*(Adjust names as needed.)*
-
----
-
 ## **Data Sources**
 
 1. **HLS Data**:  
@@ -182,8 +166,6 @@ Here is a suggested structure for your repository:
 4. **In-Situ Data**:  
    - Ground-based reservoir surface areas from 240 CONUS reservoirs for validation.
 
----
-
 ## **License**
 
 We recommend using an open-source license such as **MIT** or **Apache 2.0** to facilitate collaboration and reproducibility:
@@ -195,10 +177,6 @@ Copyright (c) 2023 [Your Name]
 
 Permission is hereby granted, free of charge, to any person obtaining ...
 ```
-
-*(Include the full text of your chosen license here.)*
-
----
 
 ## **Citation & References**
 
