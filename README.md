@@ -81,78 +81,15 @@ This project aims to generate **sub-weekly reservoir surface area time series** 
    # Install dependencies (conda recommended)
    pip install -r requirements.txt
 
-## **Quick Start**
-
-Below is a minimal run-through assuming you have set up your environment and data directories:
-
-```bash
-# 1. Download data (adjust date and reservoir name)
-python src/download_data.py \
-  --reservoir="ExampleReservoir" \
-  --start-date="2016-01-01" \
-  --end-date="2016-12-31" \
-  --output="data/raw"
-
-# 2. Merge & clip to reservoir mask
-python src/merge_and_clip.py \
-  --input="data/raw" \
-  --mask="masks/ExampleReservoir.shp" \
-  --output="data/processed"
-
-# 3. Classify (Random Forest)
-python src/random_forest_classifier.py \
-  --input="data/processed" \
-  --model="models/rf_model.pkl" \
-  --output="data/classified"
-
-# 4. Enhance & correct clouds
-python src/cloud_enhancement.py \
-  --classified-dir="data/classified" \
-  --output="data/enhanced"
-
-# 5. Generate time series
-python src/time_series.py \
-  --enhanced-dir="data/enhanced" \
-  --output="data/timeseries"
-
-# 6. LOWESS smoothing & outlier removal
-python src/smooth_and_outlier.py \
-  --input="data/timeseries" \
-  --output="results/final_timeseries.csv"
-```
-
 ## **Example**
 
 A more detailed demonstration is provided in the examples/ folder:
-1. `examples/example.ipynb`  
+1. `examples/multi-tile.ipynb`  
     - Walks through data download, classification, enhancement, and final time series plotting for a single small reservoir.  
     - Illustrates how to handle special cases (e.g., ice coverage, ephemeral water bodies).
 
 **PLACEHOLDER FOR FIGURE**  
 _An example plot showing the time series of reservoir surface area with LOWESS smoothing._
-
-## **Project Structure**
-
-Here is a suggested structure for your repository:
-
-```
-.
-├── src/
-│   ├── download_data.py
-│   ├── merge_and_clip.py
-│   ├── preprocess.py
-│   ├── random_forest_classifier.py
-│   ├── cloud_enhancement.py
-│   ├── time_series.py
-│   └── smooth_and_outlier.py
-├── examples/
-│   └── example.ipynb
-├── data/
-│   └── (sample or placeholder data)
-├── environment.yml or requirements.txt
-├── .gitignore
-└── README.md  (this file)
-```
 
 ## **Data Sources**
 
@@ -169,14 +106,6 @@ Here is a suggested structure for your repository:
 ## **License**
 
 We recommend using an open-source license such as **MIT** or **Apache 2.0** to facilitate collaboration and reproducibility:
-
-```text
-MIT License
-
-Copyright (c) 2023 [Your Name]
-
-Permission is hereby granted, free of charge, to any person obtaining ...
-```
 
 ## **Citation & References**
 
