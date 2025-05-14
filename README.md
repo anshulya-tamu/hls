@@ -84,7 +84,7 @@ This project aims to generate **sub-weekly reservoir surface area time series** 
 ## **Example**
 
 A more detailed demonstration is provided in the examples/ folder:
-1. `examples/multi-tile.ipynb`  
+1. `examples/single-reservoir-example.ipynb`  
     - Walks through data download, classification, enhancement, and final time series plotting for a single small reservoir.  
     - Illustrates how to handle special cases (e.g., ice coverage, ephemeral water bodies).
 
