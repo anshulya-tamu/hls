@@ -10,7 +10,7 @@ Welcome to the official repository for our sub-weekly reservoir surface area map
 2. [Features / Pipeline Overview](#features--pipeline-overview)  
 3. [Prerequisites & Installation](#prerequisites--installation)  
 4. [Quick Start](#quick-start)  
-5. [Detailed Usage](#detailed-usage)  
+5. [Detailed Usage](#detailed-usage) 
 6. [Example](#example)  
 7. [Project Structure](#project-structure)  
 8. [Data Sources](#data-sources)  

@@ -2,16 +2,13 @@ import os
 import shutil
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import argparse
 
 # Define band lists
 bands = {
     "S30": ['B01', 'B05', 'B09', 'B8A', 'B02', 'B06', 'B10', 'Fmask', 'B03', 'B07', 'B11', 'SAA', 'B04', 'B08', 'B12', 'SZA'],
     "L30": ['B01', 'B04', 'B07', 'Fmask', 'B02', 'B05', 'B10', 'SAA', 'B03', 'B06', 'B11', 'SZA']
 }
-
-# Base input and output directories
-base_input_dir = '/scratch/user/anshulya/hls/data'
-base_output_dir = '/scratch/user/anshulya/hls/data/cluster'
 
 # Function to copy and remove a file
 def copy_and_remove_file(source, destination):
@@ -25,11 +22,11 @@ def copy_and_remove_file(source, destination):
 
 # Function to process a single folder
 def process_folder(args):
-    product, band_list, folders_path, folder = args
+    product, band_list, folders_path, folder, tile_list, base_output_dir = args
     tile = folder.split('.')[2][1:]
 
     
-    if not tile in ['16RFV', '16RGV', '17SMS', '15SXT', '16SEC', '16SDB', '16SFA', '16SGA', '16SCE', '16SDE', '16SED', '16SDC', '16SCG', '16SDG', '16SCF', '16SDF']:
+    if not tile in tile_list:
         return
     
     day = folder.split('.')[3].split('T')[0]
@@ -54,7 +51,11 @@ def process_folder(args):
             future.result()  # Handle exceptions if any
 
 # Main function to process S30 and L30
-def process_files(product, band_list):
+def process_files(product, band_list, tile_list, base_dir):
+    # Base input and output directories
+    base_input_dir = str(os.path.join(base_dir, 'data'))
+    base_output_dir = str(os.path.join(base_dir, 'data/cluster'))
+    
     try:
         for y in os.listdir(f'{base_input_dir}/{product}'):
             for tn in os.listdir(f'{base_input_dir}/{product}/{y}'):
@@ -67,7 +68,7 @@ def process_files(product, band_list):
                             
                             # Parallelize folder processing
                             with ProcessPoolExecutor(max_workers=40) as executor:
-                                args = [(product, band_list, folders_path, folder) for folder in folders]
+                                args = [(product, band_list, folders_path, folder, tile_list, base_output_dir) for folder in folders]
                                 list(tqdm(executor.map(process_folder, args), total=len(folders), desc="Processing Folders"))
     except KeyboardInterrupt:
         print("\nKeyboardInterrupt detected! Shutting down gracefully...")
@@ -76,12 +77,23 @@ def process_files(product, band_list):
 # Entry point
 if __name__ == "__main__":
     try:
+        parser = argparse.ArgumentParser(description="List of tiles to be rearranged.")
+        parser.add_argument('--tiles', nargs='+', required=True, help='List of tile IDs')
+        parser.add_argument('--path', type=str, required=True, help='Base directory path')
+
+        args = parser.parse_args()
+        tile_list = args.tiles
+        base_dir = args.path
+
+        print("Tiles passed:", tile_list)
+        print("Path passed:", base_dir)
+
         # Process S30 and L30 products
         print("Starting to process S30 product...")
-        process_files("S30", bands["S30"])
+        process_files("S30", bands["S30"], tile_list, base_dir)
         
         print("Starting to process L30 product...")
-        process_files("L30", bands["L30"])
+        process_files("L30", bands["L30"], tile_list, base_dir)
 
         print("Processing completed successfully!")
     except KeyboardInterrupt:

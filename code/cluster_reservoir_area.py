@@ -13,6 +13,7 @@ from pathlib import Path
 import io
 from scipy.sparse import csr_matrix
 from scipy.sparse import load_npz
+import json
 
 import zipfile
 from collections import defaultdict
@@ -50,6 +51,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 import time
 import random
+import argparse
 
 
 def project_hls_latlon(hls, jrc, filename = 'hls_proj.tif'):
@@ -76,13 +78,13 @@ def project_hls_latlon(hls, jrc, filename = 'hls_proj.tif'):
                 resampling=Resampling.nearest)
     return projTIF
 
-def reproject_unmerged_rasters(save_path):
+def reproject_unmerged_rasters(save_path, base_dir):
     print('start of reprojections')
     for filename in tqdm(os.listdir(save_path)):
         if filename == 'tile_metadata.csv':
             continue
         if os.path.isfile(os.path.join(save_path, filename)):
-            jrc = rio.open('/scratch/user/anshulya/hls/data/383_LAKE_MEAD.tif')
+            jrc = rio.open(os.path.join(base_dir, 'data/383_LAKE_MEAD.tif'))
             hls = rio.open(os.path.join(save_path, filename))
             project_hls_latlon(hls, jrc, os.path.join(save_path, filename))
             
@@ -299,23 +301,23 @@ def resample_jrc_raster(hls_path, jrc, filename):
       return filename
       
       
-def classify_reservoir(res_gid, clip_path, sat):
+def classify_reservoir(res_gid, clip_path, sat, base_dir):
 
     try:
         if sat == 'L30':
             bands = ['B01', 'B02', 'B03', 'B04', 'B05','B06','B07','B10','B11']
-            clf = joblib.load(os.path.join('/scratch/user/anshulya/hls/data/models/rf_models', 'lake_rf_new_L30_ice.pkl'))
+            clf = joblib.load(os.path.join(base_dir, 'data/models/rf_models', 'lake_rf_new_L30_ice.pkl'))
         else:
             bands = ['B01', 'B02', 'B03', 'B04', 'B05','B06','B07','B08','B8A','B09','B10', 'B11', 'B12']
-            clf = joblib.load(os.path.join('/scratch/user/anshulya/hls/data/models/rf_models', 'lake_rf_new_S30_ice.pkl'))
+            clf = joblib.load(os.path.join(base_dir, 'data/models/rf_models', 'lake_rf_new_S30_ice.pkl'))
         
         print('Processing: ',clip_path)
         
         if sat == 'S30':
-            max_file_name = f'/scratch/user/anshulya/hls/data/max_rasters/{res_gid}/S30/B01_clipped_raster.tif'
+            max_file_name = os.path.join(base_dir, f'data/max_rasters/{res_gid}/S30/B01_clipped_raster.tif')
             max_x, max_y = rio.open(max_file_name).read(1).shape
         else:
-            max_file_name = f'/scratch/user/anshulya/hls/data/max_rasters/{res_gid}/L30/B01_clipped_raster.tif'
+            max_file_name = os.path.join(base_dir, f'data/max_rasters/{res_gid}/L30/B01_clipped_raster.tif')
             max_x, max_y = rio.open(max_file_name).read(1).shape
         
         ext_bands = bands + ['Fmask']  
@@ -456,9 +458,9 @@ def classify_reservoir(res_gid, clip_path, sat):
         
         print('Solar azimuth angle: {}\tSolar zenith angle {}'.format(azimuth, zenith))
         
-        im_name = [f for f in os.listdir(os.path.join('/scratch/user/anshulya/hls/data/auxiliary/srtm_data')) if f.startswith(str(res_gid)+'_')][0]
+        im_name = [f for f in os.listdir(os.path.join(base_dir, 'data/auxiliary/srtm_data')) if f.startswith(str(res_gid)+'_')][0]
         
-        dem_ras = rio.open(os.path.join('/scratch/user/anshulya/hls/data/auxiliary/srtm_data',im_name))
+        dem_ras = rio.open(os.path.join(base_dir, 'data/auxiliary/srtm_data',im_name))
         resample_jrc_raster(os.path.join(clip_path,sat,'B01_stitched_raster.tif'), dem_ras, os.path.join(clip_path,sat,'dem.tif'))
         dem_ras = rio.open(os.path.join(clip_path,sat,'dem.tif'))
         dem = dem_ras.read(1)
@@ -469,10 +471,10 @@ def classify_reservoir(res_gid, clip_path, sat):
         shadow_mask = terrain_shadow(dem, azimuth, zenith)
         sm = 1 - shadow_mask.astype(int)
         
-        im_name = [f for f in os.listdir(os.path.join('/scratch/user/anshulya/hls/data/auxiliary/jrc_data')) if f.startswith(str(res_gid)+'_')][0]
+        im_name = [f for f in os.listdir(os.path.join(base_dir, 'data/auxiliary/jrc_data')) if f.startswith(str(res_gid)+'_')][0]
         
         # Input the JRC data
-        jrc_ras = rio.open(os.path.join('/scratch/user/anshulya/hls/data/auxiliary/jrc_data',im_name))
+        jrc_ras = rio.open(os.path.join(base_dir, 'data/auxiliary/jrc_data',im_name))
         resample_jrc_raster(os.path.join(clip_path,sat, 'B01_stitched_raster.tif'), jrc_ras, os.path.join(clip_path,sat,'jrc.tif'))
         jrc_ras = rio.open(os.path.join(clip_path,sat,'jrc.tif'))
         jrc_data = jrc_ras.read(1)
@@ -640,12 +642,12 @@ def classify_reservoir(res_gid, clip_path, sat):
         return None, None, None
         
         
-def process_reservoirs_for_day(day, todo_tiles, todo_res_list, grand):
+def process_reservoirs_for_day(day, todo_tiles, todo_res_list, grand, base_dir):
     day_tiles = []
 
     # Check which tiles exist for the given day
     for tile in todo_tiles:
-        if os.path.exists(f'/scratch/user/anshulya/hls/data/cluster/{tile}/unmerged_rasters/{day}'):
+        if os.path.exists(os.path.join(base_dir, f'data/cluster/{tile}/unmerged_rasters/{day}')):
             day_tiles.append(tile)
 
     day_res = [res for res in todo_res_list.keys() if any(tile in day_tiles for tile in todo_res_list[res])]
@@ -654,14 +656,14 @@ def process_reservoirs_for_day(day, todo_tiles, todo_res_list, grand):
     for res_gid in day_res:
         print('Processing starting for reservoir: ', res_gid, day)
         
-        result_directory_path = os.path.join('/scratch/user/anshulya/hls/results/hls_classified', str(res_gid), str(day))
+        result_directory_path = os.path.join(base_dir, 'results/hls_classified', str(res_gid), str(day))
         if os.path.isdir(result_directory_path):
             print('Directory already exists')
             print('##########################################')
             continue
             
-        merge_path = f'/scratch/user/anshulya/hls/data/raw/{res_gid}/merged_rasters/{day}'
-        clip_path = f'/scratch/user/anshulya/hls/data/raw/{res_gid}/clipped_rasters/{day}'
+        merge_path = os.path.join(base_dir, f'data/raw/{res_gid}/merged_rasters/{day}')
+        clip_path = os.path.join(base_dir, f'data/raw/{res_gid}/clipped_rasters/{day}')
 
         res = grand.loc[grand['GRAND_ID'] == res_gid]
         res.geometry = res.geometry.buffer(0.01)
@@ -670,14 +672,14 @@ def process_reservoirs_for_day(day, todo_tiles, todo_res_list, grand):
 
         # Process for each satellite (L30, S30)
         for sat in ['L30', 'S30']:
-            all_exist = all(Path(f'/scratch/user/anshulya/hls/data/cluster/{tile}/unmerged_rasters/{day}/{sat}').exists() for tile in tiles)
+            all_exist = all(Path(os.path.join(base_dir, f'data/cluster/{tile}/unmerged_rasters/{day}/{sat}')).exists() for tile in tiles)
             if not all_exist:
                 continue
             
             print('Projecting raster tiles')
             for tile in tiles:
-                dirpath = f'/scratch/user/anshulya/hls/data/cluster/{tile}/unmerged_rasters/{day}/{sat}'
-                reproject_unmerged_rasters(dirpath)
+                dirpath = os.path.join(base_dir, f'data/cluster/{tile}/unmerged_rasters/{day}/{sat}')
+                reproject_unmerged_rasters(dirpath, base_dir)
 
             if sat == 'L30':
                 bands = ['B01', 'B03', 'B05', 'B06', 'B04', 'Fmask', 'B07',
@@ -686,7 +688,7 @@ def process_reservoirs_for_day(day, todo_tiles, todo_res_list, grand):
                 bands = ['B10', 'B07', 'B09', 'B04', 'B03', 'B11', 'B06',
                          'B12', 'B02', 'B8A', 'B08', 'B01', 'Fmask', 'B05', 'SAA', 'SZA']
 
-            dirpaths = [f'/scratch/user/anshulya/hls/data/cluster/{tile}/unmerged_rasters/{day}/{sat}' for tile in tiles]
+            dirpaths = [os.path.join(base_dir, f'data/cluster/{tile}/unmerged_rasters/{day}/{sat}') for tile in tiles]
             merge_rasters(dirpaths, bands, merge_path, sat)
 
             if not os.path.exists(os.path.join(clip_path, sat)):
@@ -700,9 +702,9 @@ def process_reservoirs_for_day(day, todo_tiles, todo_res_list, grand):
                     clip_raster(ras, res, f'{clip_path}/{sat}/{cr_name}')
 
             # Classify reservoir
-            A, B, C = classify_reservoir(res_gid, clip_path, sat)
+            A, B, C = classify_reservoir(res_gid, clip_path, sat, base_dir)
             if A is not None:
-                results_dir = os.path.join('/scratch/user/anshulya/hls/results/hls_classified', str(res_gid), str(day))
+                results_dir = os.path.join(base_dir, 'results/hls_classified', str(res_gid), str(day))
                 if not os.path.exists(results_dir):
                     os.makedirs(results_dir)
 
@@ -715,70 +717,43 @@ def process_reservoirs_for_day(day, todo_tiles, todo_res_list, grand):
         shutil.rmtree(merge_path)
         shutil.rmtree(clip_path)
 
-def process_dates_in_range(start_day, end_day, num_workers):
-    grand = gp.read_file('/scratch/user/anshulya/hls/data/auxiliary/gis/hls_reservoirs.geojson')
-    old_hls = gp.read_file('/scratch/user/anshulya/hls/data/auxiliary/gis/800_res.geojson')
-    s2_res = pd.read_csv('/scratch/user/anshulya/hls/data/auxiliary/gis/sentinel_tiles.csv')
+def process_dates_in_range(start_day, end_day, num_workers, base_dir):
+    grand = gp.read_file(os.path.join(base_dir, 'data/auxiliary/gis/hls_reservoirs.geojson'))
+    # old_hls = gp.read_file(os.path.join(base_dir, 'data/auxiliary/gis/800_res.geojson'))
+    # s2_res = pd.read_csv(os.path.join(base_dir, 'data/auxiliary/gis/sentinel_tiles.csv'))
     
     
-    not_done_gid = []
-    old_done_idx = [int(f.split('_')[0]) for f in os.listdir('/scratch/user/anshulya/hls/results/old') if f.endswith('_f.csv')]
-    old_gid = [old_hls.loc[id,'grand_id'] for id in old_done_idx]
+    # not_done_gid = []
+    # old_done_idx = [int(f.split('_')[0]) for f in os.listdir(os.path.join(base_dir, 'results/old')) if f.endswith('_f.csv')]
+    # old_gid = [old_hls.loc[id,'grand_id'] for id in old_done_idx]
     
-    new_gid = [int(f) for f in os.listdir('/scratch/user/anshulya/hls/results/hls_classified') if int(f) not in old_gid]
-    files = ['2016.zip','2017.zip','2018.zip','2019.zip','2020.zip','2021.zip','2022.zip','2023.zip']
-    for g in tqdm(new_gid):
-        all_exist = all(Path(f'/scratch/user/anshulya/hls/results/hls_classified/{g}/{f}').exists() for f in files)
-        if not all_exist:
-            not_done_gid.append(g)
-    new_gid = [int(f) for f in os.listdir('/scratch/user/anshulya/hls/results/hls_classified') if int(f) not in old_gid and int(f) not in not_done_gid]
-    print(len(os.listdir('/scratch/user/anshulya/hls/results/hls_classified')), len(new_gid))
+    # new_gid = [int(f) for f in os.listdir(os.path.join(base_dir, 'results/hls_classified')) if int(f) not in old_gid]
+    # files = ['2016.zip','2017.zip','2018.zip','2019.zip','2020.zip','2021.zip','2022.zip','2023.zip']
+    # for g in tqdm(new_gid):
+    #     all_exist = all(Path(os.path.join(base_dir, f'results/hls_classified/{g}/{f}')).exists() for f in files)
+    #     if not all_exist:
+    #         not_done_gid.append(g)
+    # new_gid = [int(f) for f in os.listdir(os.path.join(base_dir, 'results/hls_classified')) if int(f) not in old_gid and int(f) not in not_done_gid]
+    # print(len(os.listdir(os.path.join(base_dir, 'results/hls_classified'))), len(new_gid))
     
-    done_gid = new_gid + old_gid
-    not_done_gid = [x for x in grand['GRAND_ID'].values if x not in done_gid]
+    # done_gid = new_gid + old_gid
+    # not_done_gid = [x for x in grand['GRAND_ID'].values if x not in done_gid]
+
+    # load and print to check the .txt file
+    with open(os.path.join(base_dir, 'code/classification_files/metadata.txt'), 'r') as f:
+        data = json.load(f)
+
+    print('Dictionary:\n', data['todo_res_dict'], '\nTiles:\n', data['todo_tiles'])
     
-    todo_tiles = ['15SXT', '16SDF', '16SCE', '16SDC', '16SEC', '16SFA', '16SCG', '16SDB', '17SMS', '16SDG', '16RFV', '16SCF', '16SDE', '16SED', '16RGV', '16SGA']
-                  
-    # res_list = [x for x in s2_res.loc[s2_res['Name'].isin(todo_tiles),'GRAND_ID'].unique() if x in not_done_gid]
+    todo_tiles = data['todo_tiles']
     
-    # todo_res_list = {}
-    # ext_res = []
-    # for r in res_list:
-    #     tiles = s2_res.loc[s2_res['GRAND_ID']==r,'Name'].unique()
-    #     rogue = [t for t in tiles if t not in todo_tiles]
-    #     if len(rogue)>0:
-    #         print(r, tiles)
-    #         print(r, [t for t in tiles if t not in todo_tiles])
-    #         ext_res.append(r)
-    #     else:
-    #         todo_res_list[r] = list(tiles)
-    # print('Reservoirs to be processed: ',len(todo_res_list))
-    
-    todo_res_list = {1132: ['15SXT'],
-                     1142: ['15SXT'],
-                     1910: ['16RFV', '16SFA'],
-                     1912: ['16RFV'],
-                     1916: ['16RFV', '16RGV'],
-                     1753: ['16SCE', '16SCF', '16SCG', '16SDE', '16SDF'],
-                     1752: ['16SCF', '16SCG', '16SDF', '16SDG'],
-                     1887: ['16SDB'],
-                     1888: ['16SDB', '16SDC'],
-                     1867: ['16SDC', '16SEC'],
-                     1874: ['16SDC'],
-                     1792: ['16SDE'],
-                     1749: ['16SDF', '16SDG'],
-                     1847: ['16SEC', '16SED'],
-                     1909: ['16SGA'],
-                     1891: ['17SMS'],
-                     1893: ['17SMS']}
-    
-    ###############
-    # todo_res_list[1493] = ['16TCP']
+    todo_res_list = data['todo_res_dict']
+    todo_res_list = {int(k): v for k, v in todo_res_list.items()}
 
     # Use ProcessPoolExecutor to parallelize the function
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
         # Submit tasks to process each day in parallel
-        futures = [executor.submit(process_reservoirs_for_day, day, todo_tiles, todo_res_list, grand) for day in range(start_day, end_day)]
+        futures = [executor.submit(process_reservoirs_for_day, day, todo_tiles, todo_res_list, grand, base_dir) for day in range(start_day, end_day)]
     
         # Optionally, wait for all tasks to complete and handle results
         for future in futures:
@@ -789,23 +764,27 @@ def process_dates_in_range(start_day, end_day, num_workers):
                 
                 
 if __name__ == '__main__':
-    # Check if the required arguments are provided
-    if len(sys.argv) != 4:
-        print("Usage: python cluster_reservoir_area.py <start_date> <end_date> <num_workers>")
-        print("Example: python script.py 01-01-2022 12-31-2022 4")
+    parser = argparse.ArgumentParser(description="Cluster-based reservoir area processor")
+
+    parser.add_argument('--start_date', type=str, required=True, help='Start date in MM-DD-YYYY format')
+    parser.add_argument('--end_date', type=str, required=True, help='End date in MM-DD-YYYY format')
+    parser.add_argument('--num_workers', type=int, required=True, help='Number of worker processes')
+    parser.add_argument('--base_dir', type=str, required=True, help='Base directory path for data and output')
+
+    args = parser.parse_args()
+
+    try:
+        start_date = datetime.strptime(args.start_date, '%m-%d-%Y')
+        end_date = datetime.strptime(args.end_date, '%m-%d-%Y')
+    except ValueError as e:
+        print("Error parsing dates. Please use MM-DD-YYYY format.")
         sys.exit(1)
-    
-    # Get the command-line arguments
-    start_date_input = sys.argv[1]
-    end_date_input = sys.argv[2]
-    num_workers_input = int(sys.argv[3])
 
-    start_date = datetime.strptime(start_date_input, '%m-%d-%Y')
-    end_date = datetime.strptime(end_date_input, '%m-%d-%Y')
-    
-    print('Processing: ', int(start_date.strftime('%Y%j')), ' to ', int(end_date.strftime('%Y%j')))
+    start_doy = int(start_date.strftime('%Y%j'))
+    end_doy = int(end_date.strftime('%Y%j'))
 
-    process_dates_in_range(int(start_date.strftime('%Y%j')), int(end_date.strftime('%Y%j')), int(num_workers_input))
+    print(f"Processing: {start_doy} to {end_doy}")
+    process_dates_in_range(start_doy, end_doy, args.num_workers, args.base_dir)
   
 
 
