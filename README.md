@@ -111,7 +111,7 @@ We recommend using an open-source license such as **MIT** or **Apache 2.0** to f
 
 If you find this code or dataset helpful, please cite our work:
 
-> Yadav, A., Zhang, S., Zhao, B., Allen, G. H., Pearson, C., Huntington, J., Holman, K., McQuillan, K., & Gao, H. (2025). Mapping Reservoir Water Surface Area in the Contiguous United States using the High-temporal Harmonized Landsat and Sentinel (HLS) Data at a Sub-Weekly Time Scale. (*Manuscript in preparation for Geophysical Research Letters*)
+> Yadav, A., Zhang, S., Zhao, B., Allen, G. H., Pearson, C., Huntington, J., et al. (2025). Mapping reservoir water surface area in the contiguous United States using the high‐temporal Harmonized Landsat and Sentinel (HLS) data at a sub‐weekly time scale. Geophysical Research Letters, 52, e2024GL114046. https://doi.org/10.1029/2024GL114046
 ---
 ## **Contact & Contributing**
 
