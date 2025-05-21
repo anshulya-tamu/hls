@@ -125,7 +125,7 @@ If you find this code or dataset helpful, please cite our work:
    - Submit a pull request once you’ve tested your changes.
 
 3. **Acknowledgments**  
-   - This research was supported by the NASA Applied Sciences Program (80NSSC22K0933).  
+   - This research was supported by the NASA Earth Sciences, Applied Sciences - Water Resources Program (80NSSC22K0933), U.S. Geological Survey Water Availability and Use Science Program and Water Resources Research Act Program (G25AC00180-00). 
    - Thanks to the Bureau of Reclamation, Desert Research Institute, and all collaborators for in-situ data support.
 ---
 <p align="center">
