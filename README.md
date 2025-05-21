@@ -86,10 +86,6 @@ This project aims to generate **sub-weekly reservoir surface area time series** 
 A more detailed demonstration is provided in the examples/ folder:
 1. `examples/single-reservoir-example.ipynb`  
     - Walks through data download, classification, enhancement, and final time series plotting for a single small reservoir.  
-    - Illustrates how to handle special cases (e.g., ice coverage, ephemeral water bodies).
-
-**PLACEHOLDER FOR FIGURE**  
-_An example plot showing the time series of reservoir surface area with LOWESS smoothing._
 
 ## **Data Sources**
 
